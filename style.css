@@ -1,0 +1,64 @@
+/* style.css */
+
+body {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+input,
+select,
+button {
+  padding: 8px;
+  font-size: 1rem;
+}
+
+#taskList {
+  list-style: none;
+  padding: 0;
+}
+
+.task {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 5px;
+  border-left: 5px solid;
+  border-radius: 5px;
+}
+
+/* Priority color coding */
+.task.high {
+  background-color: #fdecea;
+  border-color: #e74c3c;
+}
+
+.task.medium {
+  background-color: #fcf3e3;
+  border-color: #f39c12;
+}
+
+.task.low {
+  background-color: #eafaf1;
+  border-color: #2ecc71;
+}
+
+.controls button {
+  margin-left: 5px;
+}
+
+#voiceBtn {
+  cursor: pointer;
+}

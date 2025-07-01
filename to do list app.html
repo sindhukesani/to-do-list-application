@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Scheduler</title>
+  <!-- Link external stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Task Scheduler</h1>
+  <form id="taskForm">
+    <input type="text" id="taskInput" placeholder="Task description" required>
+    <div>
+      <label>Start: <input type="datetime-local" id="startInput" required></label>
+      <label>End: <input type="datetime-local" id="endInput" required></label>
+    </div>
+    <select id="priorityInput" required>
+      <option value="high">High Priority</option>
+      <option value="medium">Medium Priority</option>
+      <option value="low">Low Priority</option>
+    </select>
+    <div>
+      <button type="button" id="voiceBtn">🎤 Speak Task</button>
+      <button type="submit">Add Task</button>
+    </div>
+  </form>
+
+  <ul id="taskList"></ul>
+
+  <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+
+    function saveTasks() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+      tasks.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = `task ${task.priority}`;
+        li.innerHTML = `
+          <div>
+            <strong>${task.description}</strong><br>
+            ${new Date(task.start).toLocaleString()} ➔ ${new Date(task.end).toLocaleString()}
+          </div>
+          <div class="controls">
+            <button onclick="updateTask(${index})">Update</button>
+            <button onclick="rescheduleTask(${index})">Reschedule</button>
+            <button onclick="deleteTask(${index})">Delete</button>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function addTask(task) {
+      tasks.push(task);
+      saveTasks(); renderTasks();
+    }
+
+    function deleteTask(i) {
+      tasks.splice(i, 1);
+      saveTasks(); renderTasks();
+    }
+
+    function rescheduleTask(i) {
+      const task = tasks[i];
+      const newStart = prompt('New start (YYYY-MM-DDTHH:MM)', new Date(task.start).toISOString().slice(0,16));
+      const newEnd = prompt('New end (YYYY-MM-DDTHH:MM)', new Date(task.end).toISOString().slice(0,16));
+      if (newStart && newEnd) {
+        task.start = new Date(newStart).toISOString();
+        task.end = new Date(newEnd).toISOString();
+        saveTasks(); renderTasks();
+      }
+    }
+
+    function updateTask(i) {
+      const task = tasks[i];
+      const desc = prompt('Task description:', task.description);
+      const start = prompt('Start (YYYY-MM-DDTHH:MM):', new Date(task.start).toISOString().slice(0,16));
+      const end = prompt('End (YYYY-MM-DDTHH:MM):', new Date(task.end).toISOString().slice(0,16));
+      const priority = prompt('Priority (high, medium, low):', task.priority);
+      if (desc && start && end && ['high','medium','low'].includes(priority)) {
+        task.description = desc;
+        task.start = new Date(start).toISOString();
+        task.end = new Date(end).toISOString();
+        task.priority = priority;
+        saveTasks(); renderTasks();
+      } else {
+        alert('Invalid input or priority.');
+      }
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const desc = document.getElementById('taskInput').value.trim();
+      const start = new Date(document.getElementById('startInput').value);
+      const end = new Date(document.getElementById('endInput').value);
+      const priority = document.getElementById('priorityInput').value;
+      if (start >= end) { alert('End must be after start'); return; }
+      addTask({ description: desc, start: start.toISOString(), end: end.toISOString(), priority });
+      e.target.reset();
+    });
+
+    setInterval(() => {
+      const now = new Date();
+      tasks.forEach((task, i) => {
+        const start = new Date(task.start);
+        const end = new Date(task.end);
+        if (!task.ringed && now >= start && now < end) {
+          document.getElementById('alarmSound').play();
+          task.ringed = true;
+        }
+        if (now >= end) {
+          deleteTask(i);
+        }
+      });
+    }, 1000);
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognizer = new SpeechRecognition();
+      recognizer.lang = 'en-US';
+      document.getElementById('voiceBtn').addEventListener('click', () => recognizer.start());
+      recognizer.onresult = e => document.getElementById('taskInput').value = e.results[0][0].transcript;
+      recognizer.onerror = e => console.error(e.error);
+    } else {
+      document.getElementById('voiceBtn').disabled = true;
+      document.getElementById('voiceBtn').title = 'Speech recognition not supported';
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>
